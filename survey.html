@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Address Submission</title>
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #fff;
+    }
+    #formDiv { height: 100%; }
+
+    /* Mobile toast */
+    #toast {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index: 9999;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      display: none;
+    }
+    #toastTitle { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    #toastMsg { font-size: 13px; opacity: 0.95; word-break: break-word; }
+  </style>
+
+  <!-- Survey123 Web Form JS API -->
+  <script src="https://survey123.arcgis.com/api/jsapi/"></script>
+</head>
+
+<body>
+  <div id="formDiv"></div>
+
+  <div id="toast">
+    <div id="toastTitle"></div>
+    <div id="toastMsg"></div>
+  </div>
+
+  <script>
+    const SURVEY_ITEM_ID = "d4f003f5be254f9bb5a8d92a281f9e13";
+    const RESULT_PAGE = "https://aburg55.github.io/testPage.html";
+
+    const toast = document.getElementById("toast");
+    const toastTitle = document.getElementById("toastTitle");
+    const toastMsg = document.getElementById("toastMsg");
+
+    function showToast(title, msg) {
+      toastTitle.textContent = title || "";
+      toastMsg.textContent = msg || "";
+      toast.style.display = "block";
+    }
+
+    const webform = new Survey123WebForm({
+      container: document.getElementById("formDiv"),
+      itemId: SURVEY_ITEM_ID
+    });
+
+    webform.setOnFormSubmit(() => {
+      showToast("Submitting…", "Please wait while we save your response.");
+    });
+
+    // Prevent double redirects if something fires twice
+    let redirected = false;
+
+    webform.setOnFormSubmitted((data) => {
+      console.log("onFormSubmitted:", data);
+
+      if (redirected) return;
+
+      // Pull IDs from the payload shape you saw in your console
+      const feature = data?.surveyFeatureSet?.features?.[0];
+      const attrs = feature?.attributes || {};
+      const addRes = data?.result?.[0]?.addResults?.[0] || {};
+
+      const globalId =
+        attrs.globalid || attrs.GlobalID || attrs.GLOBALID ||
+        addRes.globalId || addRes.globalID || addRes.GlobalID;
+
+      const objectId =
+        attrs.objectid || attrs.OBJECTID ||
+        addRes.objectId || addRes.objectID || addRes.objectid;
+
+      // Optional: require geometry (helps catch “address not actually set”)
+      const geom = feature?.geometry || null;
+      if (!geom) {
+        showToast(
+          "Location missing",
+          "It looks like a point location wasn’t saved. Please submit again and make sure you place/select the point."
+        );
+        return;
+      }
+
+      showToast("Submitted!", "Opening your map…");
+      redirected = true;
+
+      // Prefer gid (works great with your testPage)
+      if (globalId) {
+        window.location.assign(`${RESULT_PAGE}?gid=${encodeURIComponent(globalId)}`);
+        return;
+      }
+
+      // Fallback to OBJECTID if no GlobalID available
+      if (Number.isFinite(Number(objectId))) {
+        window.location.assign(`${RESULT_PAGE}?oid=${encodeURIComponent(objectId)}`);
+        return;
+      }
+
+      redirected = false;
+      showToast("Submitted, but missing ID", "Please try again.");
+    });
+  </script>
+</body>
+</html>
