@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -352,7 +352,7 @@
       /* =====================
          CONFIG
       ====================== */
-      const SURVEY_FORM_URL = "https://23-71study.com//preferred-alignment-form.html";
+      const SURVEY_FORM_URL = "https://23-71study.com/preferred-alignment-form.html";
       const WEBMAP_ID = "9f2df6a022fd4d7bbe8c6aee1abd0c2f";
 
       const SURVEY_LAYER_URL =
@@ -676,7 +676,7 @@
           }
 
           await view.goTo(ext.expand(1.15));
-          setStatus("Alignments identified for further consideration", "Zoomed to extents.");
+          setStatus("Preferred alignment", "Zoomed to extents.");
         } catch (e) {
           console.error(e);
           setStatus("Error", "Could not zoom to extents.");
@@ -732,51 +732,67 @@
       setStatus("Finding your submission…", "Please wait while we locate your submitted address.", true);
 
       view.when(async () => {
-        if (!whereClause) {
-          setStatus("Error", "No valid GlobalID or OBJECTID was passed.", false);
-          return;
-        }
-
-        await surveyLayer.when();
-
-        const MAX_ATTEMPTS = 14;
-        const RETRY_DELAY = 700;
-
-        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-          setStatus("Finding your submission…", `Attempt ${attempt}/${MAX_ATTEMPTS}`, true);
-
-          const res = await surveyLayer.queryFeatures({
-            where: whereClause,
-            returnGeometry: true,
-            outFields: ["*"]
-          });
-
-          if (res.features && res.features.length > 0) {
-            submissionFeature = res.features[0];
-
-            if (!submissionFeature.geometry || submissionFeature.geometry.type !== "point") {
-              setStatus("Submitted", "Address recorded, but no point geometry exists.", false);
-              return;
-            }
-
-            setControlsEnabled(true);
-
-            clearRadius();
-            drawMarker(submissionFeature.geometry);
-            await view.goTo({ target: submissionFeature.geometry, zoom: 18 });
-
-            surveyLayer.definitionExpression = whereClause;
-
-            setStatus("Address located", getReadableLocation(submissionFeature), false);
-            showToastOncePerSession("Tip: Tap 🔍 to enter another address.");
-
+        try {
+          if (!whereClause) {
+            setStatus("Error", "No valid GlobalID or OBJECTID was passed.", false);
             return;
           }
 
-          await new Promise(r => setTimeout(r, RETRY_DELAY));
-        }
+          await surveyLayer.when();
 
-        setStatus("Still processing", "If you just submitted, try again in a moment (or reload the page).", false);
+          const MAX_ATTEMPTS = 14;
+          const RETRY_DELAY = 700;
+
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            setStatus("Finding your submission…", `Attempt ${attempt}/${MAX_ATTEMPTS}`, true);
+
+            const res = await surveyLayer.queryFeatures({
+              where: whereClause,
+              returnGeometry: true,
+              outFields: ["*"]
+            });
+
+            if (res.features && res.features.length > 0) {
+              submissionFeature = res.features[0];
+
+              if (!submissionFeature.geometry || submissionFeature.geometry.type !== "point") {
+                setStatus("Submitted", "Address recorded, but no point geometry exists.", false);
+                return;
+              }
+
+              setControlsEnabled(true);
+
+              clearRadius();
+              drawMarker(submissionFeature.geometry);
+              await view.goTo({ target: submissionFeature.geometry, zoom: 18 });
+
+              surveyLayer.definitionExpression = whereClause;
+
+              setStatus("Address located", getReadableLocation(submissionFeature), false);
+              showToastOncePerSession("Tip: Tap 🔍 to enter another address.");
+
+              return;
+            }
+
+            await new Promise(r => setTimeout(r, RETRY_DELAY));
+          }
+
+          setStatus("Still processing", "If you just submitted, try again in a moment (or reload the page).", false);
+        } catch (error) {
+          console.error("Unable to locate submission:", error);
+          setStatus(
+            "Unable to load address",
+            "The submitted address could not be retrieved. Please try again.",
+            false
+          );
+        }
+      }, (error) => {
+        console.error("Unable to load map:", error);
+        setStatus(
+          "Unable to load map",
+          "The map could not be loaded. Please try again.",
+          false
+        );
       });
 
     });
@@ -784,5 +800,4 @@
 
 </body>
 </html>
-
 
