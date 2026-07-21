@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Submission Map</title>
+  <title>Preferred Alignment Address Map</title>
 
   <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css" />
   <script src="https://js.arcgis.com/4.28/"></script>
@@ -296,7 +296,7 @@
     </div>
 
     <div id="actions">
-      <button id="zoomConnector" class="btn span-2" disabled>Zoom to Extents of Alignments Identified for Further Consideration</button>
+      <button id="zoomConnector" class="btn span-2" disabled>Zoom to Preferred Alignment</button>
       <button id="zoomAddress" class="btn span-2" disabled>Zoom to Address Entered</button>
       <button id="radius1" class="btn" disabled>Show 1 Mile Radius</button>
       <button id="radius5" class="btn" disabled>Show 5 Mile Radius</button>
@@ -327,7 +327,7 @@
           <b>Blue circle</b> = 1-mile or 5-mile radius from your address
         </div>
         <div style="margin-bottom:10px;">
-          <b>Alignments identified for further consideration</b> = proposed roadway alignment options for this project
+          <b>Preferred alignment</b> = the roadway alignment currently identified as preferred for this project
         </div>
         <div>
           Tip: Use the <b>share</b> button in the top-right to send the link to yourself or someone else.
@@ -510,7 +510,7 @@
       const surveyLayer = new FeatureLayer({
         url: SURVEY_LAYER_URL,
         outFields: ["*"],
-        opacity: 0.4
+        visible: false
       });
 
       webmap.add(surveyLayer);
@@ -652,7 +652,7 @@
       }
 
       async function zoomToReferenceLayerExtent() {
-        setStatus("Alignments identified for further consideration", "Calculating extents…", true);
+        setStatus("Preferred alignment", "Calculating extents…", true);
 
         try {
           await webmap.load();
